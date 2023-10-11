@@ -37,7 +37,7 @@ class IEXStock:
         return r.json()
 
     def get_fundamentals(self, period='quarterly', last=4):
-        url = f"{self.BASE_URL}/time-series/fundamentals/{self.symbol}/{period}?last={last}&token={self.token}"
+        url = f"{self.BASE_URL}/data/core/fundamentals/{self.symbol}/{period}?range={last}&token={self.token}"
         r = requests.get(url)
 
         return r.json()
