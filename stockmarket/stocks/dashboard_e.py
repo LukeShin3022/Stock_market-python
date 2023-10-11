@@ -28,4 +28,6 @@ if screen == 'Overview':
         st.subheader('CEO')
         st.write(company_info['ceo'])
 
-
+if screen == 'Fundamentals':
+    stats = stock.get_stats()
+    st.write()
