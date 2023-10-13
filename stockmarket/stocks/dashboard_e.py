@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 symbol = st.sidebar.text_input("symbol", value="AAPL")
 stock = IEXStock(config_e.IEX_TOKEN, symbol)
-client = redis.Redis(host="localhost", port=6379)
+client = redis.StrictRedis(host="localhost", port=6379, db=0)
 
 screen = st.sidebar.selectbox("View", ('Overview', 'Fundamentals', 'News', 'Ownership'))
 st.title(screen)
@@ -100,3 +100,58 @@ if screen == 'Fundamentals':
     for dividend in dividends:
         st.write(dividend['paymentDate'])
         st.write(dividend['amount'])
+
+if screen == 'News':
+    news_cache_key = f"{symbol}_news"
+
+    news = client.get(news_cache_key)
+
+    if news is not None:
+        news = json.loads(news)
+    else:
+        news = stock.get_company_news()
+        client.set(news_cache_key, json.dumps(news))
+
+    for article in news:
+        st.subheader(article['headline'])
+        dt = datetime.utcfromtimestamp(article['datetime']/1000).isoformat()
+        st.write(f"Posted by {article['source']} at {dt}")
+        st.write(article['url'])
+        st.write(article['summary'])
+        st.image(article['image'])
+
+if screen == 'Ownership':
+    st.subheader("Institutional Ownership")
+
+    institutional_ownership_cache_key = f"{symbol}_institutional"
+    institutional_ownership = client.get(institutional_ownership_cache_key)
+
+    if institutional_ownership is None:
+        institutional_ownership = stock.get_institutional_ownership()
+        client.set(institutional_ownership_cache_key, json.dumps(institutional_ownership))
+    else:
+        print("getting inst ownership from cache")
+        institutional_ownership = json.loads(institutional_ownership)
+
+    for institution in institutional_ownership:
+        st.write(institution['date'])
+        st.write(institution['entityProperName'])
+        st.write(institution['reportedHolding'])
+
+    st.subheader("Insider Transactions")
+
+    insider_transactions_cache_key = f"{symbol}_insider_transactions"
+
+    insider_transactions = client.get(insider_transactions_cache_key)
+    if insider_transactions is None:
+        insider_transactions = stock.get_insider_transactions()
+        client.set(insider_transactions_cache_key, json.dumps(insider_transactions))
+    else:
+        print("getting insider transactions from cache")
+        insider_transactions = json.loads(insider_transactions)
+
+    for transaction in insider_transactions:
+        st.write(transaction['filingDate'])
+        st.write(transaction['fullName'])
+        st.write(transaction['transactionShares'])
+        st.write(transaction['transactionPrice'])
